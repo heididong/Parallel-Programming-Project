@@ -16,9 +16,7 @@ typedef struct{
 __global__ void bfs(Node *d_nodes, int *d_edges, bool *d_frontier, bool *d_x, int *d_costs, bool *d_fin, int num_nodes){
 
 	int id = threadIdx.x + blockIdx.x * blockDim.x;
-	
-	//if (id > num_nodes) {*d_fin = false;}
-	
+		
 	if (d_frontier[id] == true && d_x[id] == false){
 	//if vertex is in the frontier and it has not been visited yet:
 		d_frontier[id] = false;
