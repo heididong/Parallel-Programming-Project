@@ -8,6 +8,7 @@
 typedef struct{
 	int start; //index of first adjacent node in edge array
 	int length; //number of adjacent nodes 
+	int v; 
 
 } Node;
 
@@ -21,7 +22,7 @@ void bfs_CPU(Nodes *h_nodes, int *h_cost, int *h_edges, Node *h_queue, int num_n
 		for (int i = u.start; i< (u.start + u.length); i++){
 			int n_i = h_edges[i];
 			if (h_cost[n_i] <0){
-				h_cost[n_i] = 1 + h_cost[u.start];
+				h_cost[n_i] = 1 + h_cost[u.v];
 				h_queue[queue_count] = h_node[n_i];
 				queue_count += 1; 
 			}
