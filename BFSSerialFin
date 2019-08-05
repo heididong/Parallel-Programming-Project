@@ -1,0 +1,116 @@
+#include "cuda_runtime.h" 
+#include "device_launch_parameters.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "timerc.h"
+
+
+typedef struct{
+	int start; //index of first adjacent node in edge array
+	int length; //number of adjacent nodes 
+
+} Node;
+
+void bfs_CPU(Nodes *h_nodes, int *h_cost, int *h_edges, Node *h_queue, int num_nodes){
+	int queue_count = 1; //initialized h_queue[0] to h_node[0]
+
+	while (queue_count != 0){
+		Node u = h_queue[0];
+		queue_count -= 1;
+		
+		for (int i = u.start; i< (u.start + u.length); i++){
+			int n_i = h_edges[i];
+			if (h_cost[n_i] <0){
+				h_cost[n_i] = 1 + h_cost[u.start];
+				h_queue[queue_count] = h_node[n_i];
+				queue_count += 1; 
+			}
+		}
+
+	}
+	
+}
+
+
+void generate_graph(int *graph, int num_nodes){
+//creates adjacency matrix for graph
+	for (int i = 0; i<num_nodes; i++){
+		for (int j = i; j<num_nodes; j++){
+			int n = rand()%2;
+			graph[i*num_nodes+j] = n;
+			graph[j*num_nodes+i] = n;
+			if (i==j) {graph[i*num_nodes+j] = 0;}
+		}
+	}
+}
+
+int count_edges(int *graph, int num_nodes){
+	int count = 0;
+	for (int i = 0;, i<num_nodes*num_nodes; i++){
+		if(graph[i]>0) {
+			count++;
+		}
+	}
+	
+	return count/2; 
+}
+
+void populate(int *graph, int num_nodes, Node *h_nodes, int *edges){
+	int s = 0;
+	for (int i = 0; i<num_nodes; i++){
+		h_node[i].start = s;
+		h_node[i].length = 0;
+		for (int j = i; j<num_nodes; j++){
+			if(graph[i*num_nodes+j]>0){
+				h_node[i].length += 1; 
+				edges[i*num_nodes + j] = j;
+				s = s+1;
+			}
+		}
+	}
+}
+
+
+	
+
+void main(){
+	int num_nodes = 10;
+
+	int *graph = (int *)malloc(sizeof(int)*num_nodes*num_nodes);
+	generate_graph(graph, num_nodes);
+	
+	int num_edges = count_edges(graph, num_nodes);
+	int h_edges[num_edges] = (int *)malloc(sizeof(int) * num_edges);
+	
+	
+	Node *h_nodes = (Node *)malloc(sizeof(Node) * num_nodes); //list of nodes
+	populate(graph, num_nodes, h_nodes, h_edges);
+ 	
+	bool *h_queue = (Node *)malloc(sizeof(Node)*num_nodes;
+	bool *h_x = (bool *)malloc(sizeof(bool) * num_nodes;
+	int *h_cost = (int *)malloc(sizeof(int) * num_nodes;
+	bool h_fin= false; 
+	
+
+	for (int i = 0; i<num_nodes; i++){
+		h_x[i] = false;
+		h_cost[i] = -1; 
+	}
+	
+	 //0 is source node 
+	h_queue[0] = h_node[0];
+	h_cost[0] = 0;
+
+	float cpu_run; 
+	cstart();
+	serial_bfs(h_nodes, h_cost, h_edges, h_queue, num_nodes);
+	cend(&cpu_run);
+	
+	for (int i = 0; i<num_nodes; i++){
+		printf("Vertex %d has cost: %d", i, h_cost[i]);
+	}
+	
+	printf("bfs_CPU runtime: %f", cpu_run);
+
+
+}

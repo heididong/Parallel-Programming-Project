@@ -1,0 +1,171 @@
+#include "cuda_runtime.h" 
+#include "device_launch_parameters.h"
+#include <stdio.h>
+#include "timerc.h"
+
+
+typedef struct{
+
+	int start; //index of first adjacent node in edge array
+	int length; //number of adjacent nodes 
+
+} Node;
+
+
+
+__global__ void bfs(Node *d_nodes, int *d_edges, bool *d_frontier, bool *d_x, int *d_costs, bool *d_fin, int num_nodes){
+
+	int id = threadIdx.x + blockIdx.x * blockDim.x;
+	
+	//if (id > num_nodes) {*d_fin = false;}
+	
+	if (d_frontier[id] == true && d_x[id] == false){
+	//if vertex is in the frontier and it has not been visited yet:
+		d_frontier[id] = false;
+		//set frontier for vertex to be false
+		d_x[id] = true;
+		//and add to visited
+
+		__synchthreads();
+		//make sure everyone is dealing with the same frontier and visited arrays before continuing 
+	
+		int i; 
+		int start = d_nodes[id].start;
+		int end = start + d_nodes[id].length;
+
+		for (int i = start; i < end; i++){
+			int n_id = d_edges[i];
+			if (x[n_id] == false;){
+				d_cost[n_id] = d_cost[id] + 1;
+				d_frontier[n_id] = true;
+				*d_fin = false;
+			}
+		}
+	}	
+}
+
+
+void generate_graph(int *graph, int num_nodes){
+//creates adjacency matrix for graph
+	for (int i = 0; i<num_nodes; i++){
+		for (int j = i; j<num_nodes; j++){
+			int n = rand()%2;
+			graph[i*num_nodes+j] = n;
+			graph[j*num_nodes+i] = n;
+			if (i==j) {graph[i*num_nodes+j] = 0;}
+		}
+	}
+	
+	
+}
+
+int count_edges(int *graph, int num_nodes){
+	int count = 0;
+	for (int i = 0;, i<num_nodes*num_nodes; i++){
+		if(graph[i]>0) {
+			count++;
+		}
+	}
+	
+	return count/2; 
+}
+
+void populate(int *graph, int num_nodes, Node *h_nodes, int *edges){
+	int s = 0;
+	for (int i = 0; i<num_nodes; i++){
+		h_node[i].start = s;
+		h_node[i].length = 0;
+		for (int j = i; j<num_nodes; j++){
+			if(graph[i*num_nodes+j]>0){
+				h_node[i].length += 1; 
+				edges[i*num_nodes + j] = j;
+				s = s+1;
+			}
+		}
+	}
+}
+
+
+int main(){
+	
+	int num_nodes = 10;
+	int num_blocks = 2;
+	int threads_per_block = 5; 
+
+	int *graph = (int *)malloc(sizeof(int)*num_nodes*num_nodes);
+	generate_graph(graph, num_nodes);
+	
+	int num_edges = count_edges(graph, num_nodes);
+	int h_edges[num_edges] = (int *)malloc(sizeof(int) * num_edges);
+	
+	
+	Node *h_nodes = (Node *)malloc(sizeof(Node) * num_nodes); //list of nodes
+	populate(graph, num_nodes, h_nodes, h_edges);
+ 	
+	bool *h_frontier = (bool *)malloc(sizeof(bool)*num_nodes;
+	bool *h_x = (bool *)malloc(sizeof(bool) * num_nodes;
+	int *h_cost = (int *)malloc(sizeof(int) * num_nodes;
+	bool h_fin= false; 
+	
+
+	for (int i = 0; i<num_nodes; i++){
+		h_frontier[i] = false;
+		h_x[i] = false;
+		h_cost[i] = 0; 
+	}
+	
+	h_frontier[0] = true; //0 is always source node
+
+	Node *d_nodes; 
+	int *d_edges;
+	bool *d_frontier;
+	bool *d_x;
+	int *d_costs;
+	bool *d_fin; 
+	
+	float malloc_and_copy_time; 
+	gstart();
+	cudaMalloc((void**)&d_nodes, sizeof(Node) * num_nodes);
+	cudaMalloc((void**)&d_edges, sizeof(int)*num_edges);
+	cudaMalloc((void**)&d_frontier, sizeof(bool)*num_nodes); 
+	cudaMalloc((void**)&d_x, sizeof(bool) * num_nodes);
+	cudaMalloc((void**)&d_costs, sizeof(bool) * num_nodes);
+	cudaMalloc((void**)&d_done, sizeof(bool))
+	
+	cudaMemcpy(d_nodes, h_nodes, sizeof(Node) * num_nodes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_edges, h_edges, sizeof(int) * num_edges, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_frontier, h_frontier, sizeof(bool)*num_nodes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x, h_x, sizeof(bool) * num_nodes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_costs, h_costs, sizeof(int) * num_nodes, cudaMemcpyHostToDevice);
+	gend(&malloc_and_copy_time);
+	
+
+	int bfs_kernel_calls = 0;
+	
+	do {
+		h_fin = true;
+		cudaMemcpy(d_fin, &h_fin, sizeof(bool), cudaMemcpyHostToDevice);
+		bfs<<<num_blocks, threads_per_block>>>(d_nodes, d_edges, d_frontier, d_x, d_costs, d_fin, num_nodes);
+		bfs_kernel_calls += 1;
+		cudaMemcpy(&h_fin, d_fin, sizeof(bool), cudaMemcpyDeviceToHost);
+	}while (!h_fin);
+	
+	float copy_back;
+	gstart();
+	cudaMemcpy(h_costs, d_costs, sizeof(int)*num_nodes, cudaMemcpyDeviceToHost);
+	gend(&copy_back);
+	
+	printf("BFS Kernel Calls: %d\n", bfs_kernel_calls);
+	printf("Costs:\n");
+	for (int i = 0; i<num_nodes; i++){
+		printf("Vertex %d: %d\n", i, h_costs[i]);
+	}
+
+
+	printf("Malloc and Copy Time: %f\nCopy Back and Finish Time: %f\n", malloc_and_copy_time, copy_back);
+
+	
+
+
+
+}
