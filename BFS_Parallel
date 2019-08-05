@@ -70,7 +70,7 @@ int count_edges(int *graph, int num_nodes){
 	return count/2; 
 }
 
-void populate(int *graph, int num_nodes, Node *h_nodes, int *edges){
+void populate(int *graph, int num_nodes, Node *h_nodes, int *h_edges){
 	int s = 0;
 	for (int i = 0; i<num_nodes; i++){
 		h_node[i].start = s;
@@ -78,7 +78,7 @@ void populate(int *graph, int num_nodes, Node *h_nodes, int *edges){
 		for (int j = i; j<num_nodes; j++){
 			if(graph[i*num_nodes+j]>0){
 				h_node[i].length += 1; 
-				edges[i*num_nodes + j] = j;
+				h_edges[i*num_nodes + j] = j;
 				s = s+1;
 			}
 		}
